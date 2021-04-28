@@ -6,9 +6,9 @@ int KeyInPinBefore = 6;
 int KeyInPinNext = 7;
 
 void setup(){
-  pinMode(KeyOutPin, OUTPUT);       //4-й пин сконфигурировать как выходной
+  pinMode(KeyOutPin, OUTPUT);       //2-й пин сконфигурировать как выходной
     
-  pinMode(KeyInPinOk, INPUT);        //6-й пин сконфигурировать как входной, кнопка "2"
+  pinMode(KeyInPinOk, INPUT);        //3-й пин сконфигурировать как входной, кнопка "SET"
   digitalWrite(KeyInPinOk, HIGH);    //Подтянуть к высокому уровню
   
   pinMode(KeyInPinBefore, INPUT);
