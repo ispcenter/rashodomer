@@ -1,8 +1,8 @@
 /*
-Rashodomer
-By: Klykov Leonid
-Development started 03.02.2021
-Расчётный объём ёмкости 2.576 [л]
+  Rashodomer
+  By: Klykov Leonid
+  Development started 03.02.2021
+  Расчётный объём ёмкости 2.576 [л]
 */
 
 //0 Подключение библиотек
@@ -32,8 +32,8 @@ const float Mmax = 200.0; //[г] - рабочий максимум
 const float Mmin = 52.0; //[г] - рабочий минимум
 
 const float ro = 0.85; //[г/мл] - средняя плотность дизельного топлива
-const float Tizm = 2.0; //[с] - период измерений расхода
-const float Nizm = 10.0; //[] - количество измерений за период Tizm
+const double Tizm = 2.000; //[с] - период измерений расхода
+const double Nizm = 10.000; //[] - количество измерений за период Tizm
 
 float mc = 889; //[] - наклон калибровки. смещение устанавливается тарировкой при снятой с датчика ёмкости
 const float Gzap = 0.05; //[л/с] расход заполнения
@@ -43,7 +43,7 @@ const float Gminus = 0.01; //[л/с] для эмуляции расхода
 
 
 //3 Активация библиотек
-LiquidCrystal_I2C lcd(0x27,20,4);
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 HX711 scale;
 
 void setup() {
@@ -57,52 +57,64 @@ void setup() {
 
   // Включим измерение веса
   scale.begin(DOUT_PIN, SCK_PIN);
-  scale.set_scale();
-  
+  scale.set_scale(mc); //Adjust to this calibration factor
+
   float m = getM(); //[г]
-    
+
   // Активируем экран
   lcd.begin(); lcd.backlight();
   tone(buzzerPin, 1500, 50); //tone(pin, frequency [hertz], duration [milliseconds])
   delay(100);
   tone(buzzerPin, 1500, 50);
-  lcd.setCursor(0,0); lcd.print("Hello!");
-  lcd.setCursor(0,1); lcd.print(m);
+  lcd.setCursor(0, 0); lcd.print("Hello!");
+  lcd.setCursor(0, 1); lcd.print(m);
   delay(3000);
   lcd.clear();
 
-  
+
 }
 
 void loop() {
-  Serial.println("info");
+  Serial.println("new loop");
 
   float m = getM();
-  if(m >= Mavar){
-    digitalWrite(Fill_pin, 0); // close input valve
-    lcd.print("avary");
-    delay(10000);
-  }
-  float massContainer[2] = {m, m}; // массив для сохранения данных с интервалом Tizm
   float count = 0.0;
   float G = 0.0;
-  // delay(5000);
-  
-  //пока уровень выше рабочего минимума - тратим и меряем
-  while (m > Mmin){
+
+  // Случай А - топливо выше аварийного уровня. Расход тоже надо мерить
+  if(m >= Mavar){
     digitalWrite(Fill_pin, 0); // close input valve
-    count += Tizm/Nizm;
-    Serial.println(count);
+
+    while (m >= Mavar) {
+      lcd.print("avary! "); lcd.print("m= "); lcd.print(m);
+      Serial.print("avary! "); Serial.print("m= "); Serial.println(m);
+      delay(1000);
+      lcd.clear();
+    }
+  }
+  
+  float massContainer[2] = {m, m}; // массив для сохранения данных с интервалом Tizm
+  
+  // Случай Б - топливо выше рабочего минимума: тратим и меряем расход
+  while (m > Mmin) {
+    digitalWrite(Fill_pin, 0); // close input valve
+    count += Tizm / Nizm;
     m = getM();
+    boolean qq = (count==0.2 || count==0.4 || count==0.6 || count==0.8 || count==1.0 || count==1.2 || count==1.4 || count==1.6 || count==1.8 || count==2.0);
+    Serial.print("tratim "); Serial.print("count="); Serial.print(count);
+    if (qq){Serial.print(" true ");}
+    else{Serial.print(" false ");};
+    Serial.print(count==0.2 || count==0.4 || count==0.6 || count==0.8 || count==1.0);
+    Serial.print(", m= "); Serial.println(m);
     
-    if (count == Tizm){
-      Serial.println("test2");
-      Serial.println(count);
+
+    if (count == Tizm) {
+      Serial.print("newRashod"); Serial.println(count);
       tone(buzzerPin, 1500, 50);
       m = getM();
       massContainer[1] = m;
       lcd.clear();
-      G = (massContainer[0] - massContainer[1]) * ro * 60 / Tizm /1000; // [л/мин]
+      G = (massContainer[0] - massContainer[1]) * ro * 60 / Tizm / 1000; // [л/мин]
       massContainer[0] = m;
       lcd.print("G=");
       lcd.setCursor(2, 0);
@@ -114,43 +126,49 @@ void loop() {
     delay(1000);
   }
 
-  // Если уровень опустился до рабочего минимума - заполняем ёмкость
-  if (m <= Mmin){
-   digitalWrite(Fill_pin, 1); // open input valve
-   
+  // Случай В - уровень опустился до рабочего минимума или ниже: заполняем ёмкость (мерить тоже надо)
+  if (m <= Mmin) {
+    digitalWrite(Fill_pin, 1); // open input valve
 
-    
+
+
     // заполняем, пока уровень меньше рабочего максимума
     count = 0.0;
+    boolean first = true;
+    int cc = 0;
+    // int fc = 0;
+    // int fcg = 0;
 
-    
-    while (m < Mmax){
-      count = round((count + Tizm / Nizm)*10.0)/10.0;
-      if (count == 1.0 || count == 1.4 || count == 2.0){
-        lcd.print(" ");
-        lcd.print(count);
-        Serial.print("Заполнение: ");
-        Serial.println(count);
-      }
+    while (m < Mmax) {
+      count = round((count + Tizm / Nizm) * 10.0) / 10.0;
+
       m = getM();
+      Serial.print("zapolnRem"); Serial.print(", m= "); Serial.println(m);
 
+      // первый раз информацию нужно показать на экране сразу. Второй и последующие разы экран обновлять 1 раз в 5с
+      if (count == Tizm || first == true) {
+        cc += 1;
+        lcd.clear();
+        lcd.setCursor(0, 0); lcd.print("Filling:"); lcd.print((m - Mmin) / (Mmax - Mmin) * 100); lcd.print("%  ");
+        lcd.setCursor(0, 1); lcd.print("m="); lcd.print(m);
+        lcd.setCursor(0, 2); lcd.print("cc"); lcd.print(cc);
+        first = false;
+      }
 
-      
-      delay(Tizm / Nizm * 1000*5);
+      delay(Tizm / Nizm * 1000 * 5);
     }
     tone(buzzerPin, 1500, 50);
     delay(100);
     tone(buzzerPin, 1500, 50);
     delay(100);
     tone(buzzerPin, 1500, 50);
+  }
 }
-
 
 //functions
 
 
 float getM() {
-  scale.set_scale(mc); //Adjust to this calibration factor
   float m = scale.get_units();
   return m;
 }
