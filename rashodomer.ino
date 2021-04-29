@@ -47,6 +47,8 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 HX711 scale;
 
 void setup() {
+  Serial.begin(9600);
+
   pinMode(SCK_PIN, INPUT);
   pinMode(DOUT_PIN, INPUT);
   pinMode(Fill_pin, OUTPUT);
@@ -60,36 +62,21 @@ void setup() {
   float m = getM(); //[г]
     
   // Активируем экран
-  lcd.begin();
-  lcd.backlight();
+  lcd.begin(); lcd.backlight();
   tone(buzzerPin, 1500, 50); //tone(pin, frequency [hertz], duration [milliseconds])
   delay(100);
   tone(buzzerPin, 1500, 50);
-  lcd.setCursor(0,0);
-  lcd.print("Hello!");
-  lcd.setCursor(0,1);
-  lcd.print(m);
+  lcd.setCursor(0,0); lcd.print("Hello!");
+  lcd.setCursor(0,1); lcd.print(m);
   delay(3000);
   lcd.clear();
 
-  //Проверка при включении: если вес меряется явно неверный, то необходимо калибровать прямо сейчас
-  while (m < -1 || m > 5000){
-    lcd.setCursor(0, 2); // 3) string. lcd.setCursor(col, row)
-    lcd.print("m=");
-    lcd.setCursor(2, 1);
-    lcd.print(m);
-    lcd.setCursor(17, 1);
-    lcd.print("kg");
-    lcd.setCursor(0, 3);
-    lcd.print("Need calibration!"); // 3) string
-  //  calibration();
-    m = getM();
-   
-  }
   
 }
 
 void loop() {
+  Serial.println("info");
+
   float m = getM();
   if(m >= Mavar){
     digitalWrite(Fill_pin, 0); // close input valve
@@ -105,9 +92,12 @@ void loop() {
   while (m > Mmin){
     digitalWrite(Fill_pin, 0); // close input valve
     count += Tizm/Nizm;
+    Serial.println(count);
     m = getM();
     
     if (count == Tizm){
+      Serial.println("test2");
+      Serial.println(count);
       tone(buzzerPin, 1500, 50);
       m = getM();
       massContainer[1] = m;
@@ -128,83 +118,39 @@ void loop() {
   if (m <= Mmin){
    digitalWrite(Fill_pin, 1); // open input valve
    
-  //  delay(2000);
-  //  float mn = getM(); // новый вес топлива
-   
-   // если заполнение не началось
-  //  if(mn < 1.01*m){
-  //    lcd.print("Filling problem");
-  //    digitalWrite(Fill_pin, 0); // close input valve
-  //    digitalWrite(Fill_pin, 1); // open input valve
-  //    delay(2000);
-  //    if(mn < 1.01*m){
-  //      lcd.print("Filling ERROR!"); // Если вторая попытка заполнения не удалась, прога останавливается
-  //    }
-     // делаем ремонт, затем переходим в меню проблем и нажимаем исправлено, прога продолжит работу
-   }
+
     
     // заполняем, пока уровень меньше рабочего максимума
     count = 0.0;
-    boolean first = true;
-    int cc = 0;
-    // int fc = 0;
-    // int fcg = 0;
+
     
     while (m < Mmax){
       count = round((count + Tizm / Nizm)*10.0)/10.0;
       if (count == 1.0 || count == 1.4 || count == 2.0){
         lcd.print(" ");
         lcd.print(count);
+        Serial.print("Заполнение: ");
+        Serial.println(count);
       }
       m = getM();
 
-      // первый раз информацию нужно показать на экране сразу. Второй и последующие разы экран обновлять 1 раз в 5с
-      if (count == Tizm || first == true){
-        cc += 1;
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Filling:");
-        lcd.print((m - Mmin)/(Mmax - Mmin)*100);
-        lcd.print("%  ");
-        lcd.setCursor(0, 1);
-        lcd.print("m=");
-        lcd.setCursor(2, 1);
-        lcd.print(m);
-        lcd.setCursor(0, 2);
-        lcd.print("cc");
-        lcd.print(cc);
-        first = false;
-      }
+
       
       delay(Tizm / Nizm * 1000*5);
     }
+    tone(buzzerPin, 1500, 50);
+    delay(100);
+    tone(buzzerPin, 1500, 50);
+    delay(100);
     tone(buzzerPin, 1500, 50);
 }
 
 
 //functions
-float calibration() {
-  scale.tare();  //Reset the scale to 0
-  long zero_factor = scale.read_average(); //Get a baseline reading
-  return 0;
-//  return mc;
-}
+
 
 float getM() {
   scale.set_scale(mc); //Adjust to this calibration factor
   float m = scale.get_units();
   return m;
 }
-
-//void menu_mc_cal() {
-//  lcd.clear();
-//  lcd.print("---mc calibration---");
-//
-//  lcd.setCursor(0, 1); //cr
-//  lcd.print("mc=");
-//  lcd.print(mc);
-//
-//  lcd.print("m=");
-//  lcd.print(m);
-//  lcd.print(" g");
-//}
