@@ -167,7 +167,6 @@ void loop() {
 
 //functions
 
-
 float getM() {
   float m = scale.get_units();
   return m;
