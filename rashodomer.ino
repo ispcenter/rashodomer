@@ -145,7 +145,7 @@ void loop() {
         first = false;
       }
 
-      delay(Tizm / Nizm * 5); // задержка между измерениями m
+      delay(Tizm / Nizm); // задержка между измерениями m
     }
     digitalWrite(Fill_pin, 0); // close input valve
     lcd.clear();
@@ -169,7 +169,7 @@ void Z_signal(int n) { // аргумент: сколько раз пикнуть
 // функции, которые ещё не применены!
 
 
-float getAvgG(float arr, float Gzap) {
+float getAvgG(float arr[10], float Gzap) {
   int arrlen = sizeof(arr)/sizeof(arr[0]);
   float Dsum = 0;
   
@@ -177,7 +177,7 @@ float getAvgG(float arr, float Gzap) {
     Dsum += arr[i-1] - arr[i];
   }
   float Davg = Dsum / (arrlen - 1);
-  return Davg * ro * 60 / Tizm - Gzap
+  return Davg * ro * 60 / Tizm - Gzap;
 }
 
 
@@ -232,7 +232,7 @@ void valveCheck() {
   //  если заполнение не началось
   if(mn < 1.01*m) {
     lcd.print("Filling problem");
-    antiZalip();
+    // antiZalip();
     delay(2000);
     if(mn < 1.01*m) {
     lcd.print("Filling ERROR!"); // Если вторая попытка заполнения не удалась, прога останавливается
@@ -241,16 +241,21 @@ void valveCheck() {
   }
 }
 
-void antiZalip() { // если клапан залип, пробует открывать-закрывать его 3 раза. Надо сделать в зависимости от направления отслеживать изменение и прерывать дергание если клапан заработал чтобы не ждать лишнее время
-  digitalWrite(Fill_pin, 0); // close input valve
-  delay(1000);
-  digitalWrite(Fill_pin, 1); // open input valve
-  delay(1000);
-  digitalWrite(Fill_pin, 0); // close input valve
-  delay(1000);
-  digitalWrite(Fill_pin, 1); // open input valve
-  delay(1000);
-  digitalWrite(Fill_pin, 0); // close input valve
-  delay(1000);
-  digitalWrite(Fill_pin, 1); // open input valve
-}
+// void antiZalip(bool target, int count) { // если клапан залип, пробует открывать-закрывать его 3 раза. Надо сделать в зависимости от направления отслеживать изменение и прерывать дергание если клапан заработал чтобы не ждать лишнее время
+//   digitalWrite(Fill_pin, 0); // close input valve
+//   delay(1000);
+//   digitalWrite(Fill_pin, 1); // open input valve
+//   delay(1000);
+//   digitalWrite(Fill_pin, 0); // close input valve
+//   delay(1000);
+//   digitalWrite(Fill_pin, 1); // open input valve
+//   delay(1000);
+//   digitalWrite(Fill_pin, 0); // close input valve
+//   delay(1000);
+//   digitalWrite(Fill_pin, 1); // open input valve
+//   for (int i = 0; i < count; i++)
+//   {
+//     /* code */
+//   }
+  
+// }
